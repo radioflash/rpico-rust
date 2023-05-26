@@ -23,6 +23,8 @@ use bsp::hal::{
     watchdog::Watchdog,
 };
 
+use pio_proc::pio_asm;
+
 fn add_numbers(a: i32, b: i32) -> i32 {
     a + b
 }
@@ -63,23 +65,14 @@ fn main() -> ! {
     // PIN id for use inside of PIO
     let led_pin_id = add_numbers(15, 0) as u8;
 
-    // Define some simple PIO program.
-    let mut a = pio::Assembler::<32>::new();
-    let mut wrap_target = a.label();
-    let mut wrap_source = a.label();
-
-    // Set pin as Out
-    a.set(pio::SetDestination::PINDIRS, 1);
-    // Define begin of program loop
-    a.bind(&mut wrap_target);
-    a.set(pio::SetDestination::PINS, 0);
-    a.set(pio::SetDestination::PINS, 1);
-    a.bind(&mut wrap_source);
-
-    // The labels wrap_target and wrap_source, as set above,
-    // define a loop which is executed repeatedly by the PIO
-    // state machine.
-    let program = a.assemble_with_wrap(wrap_source, wrap_target);
+    let program_with_defines = pio_proc::pio_asm!(
+        "set pindirs, 1",
+        ".wrap_target",
+        "set pins, 0",
+        "set pins, 1",
+        ".wrap",
+    );
+    let program = program_with_defines.program;
 
     // Initialize and start PIO
     let (mut pio, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
@@ -90,15 +83,6 @@ fn main() -> ! {
         .clock_divisor_fixed_point(int, frac)
         .build(sm0);
     sm.start();
-
-    // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
-    // on-board LED, it might need to be changed.
-    // Notably, on the Pico W, the LED is not connected to any of the RP2040 GPIOs but to the cyw43 module instead. If you have
-    // a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
-    // LED to one of the GPIO pins, and reference that pin here.
-    // let mut led_pin = pins.led.into_push_pull_output();
-
-    // let mut led_pin = pins.gpio14.into_push_pull_output(); //led.into_push_pull_output();
 
     loop {
         // info!("on!");

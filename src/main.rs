@@ -23,11 +23,7 @@ use bsp::hal::{
     watchdog::Watchdog,
 };
 
-use pio_proc::pio_asm;
-
-fn add_numbers(a: i32, b: i32) -> i32 {
-    a + b
-}
+// use pio_proc::pio_asm;
 
 #[entry]
 fn main() -> ! {
@@ -63,7 +59,7 @@ fn main() -> ! {
     // configure LED pin for Pio0.
     let _led: Pin<_, FunctionPio0> = pins.gpio15.into_mode();
     // PIN id for use inside of PIO
-    let led_pin_id = add_numbers(15, 0) as u8;
+    let led_pin_id = 15;
 
     let program_with_defines = pio_proc::pio_asm!(
         "set pindirs, 1",

@@ -34,7 +34,7 @@ fn main() -> ! {
     let sio = Sio::new(pac.SIO);
 
     // External high-speed crystal on the pico board is 12Mhz
-    let external_xtal_freq_hz = 12_000_000u32;
+    let external_xtal_freq_hz = bsp::XOSC_CRYSTAL_FREQ;
     let clocks = init_clocks_and_plls(
         external_xtal_freq_hz,
         pac.XOSC,
@@ -57,15 +57,21 @@ fn main() -> ! {
     );
 
     // configure LED pin for Pio0.
-    let _led: Pin<_, FunctionPio0> = pins.gpio15.into_mode();
+    let _led: Pin<_, FunctionPio0> = pins.gpio16.into_mode();
     // PIN id for use inside of PIO
-    let led_pin_id = 15;
+    let led_pin_id = 16;
 
     let program_with_defines = pio_proc::pio_asm!(
         "set pindirs, 1",
         ".wrap_target",
         "set pins, 0",
         "set pins, 1",
+        "set pins, 0",
+        "set pindirs, 0 [31]",
+        "set pindirs, 0 [31]",
+        "set pindirs, 0 [31]",
+        "set pindirs, 0 [31]",
+        "set pindirs, 1 [31]",
         ".wrap",
     );
     let program = program_with_defines.program;
@@ -73,7 +79,7 @@ fn main() -> ! {
     // Initialize and start PIO
     let (mut pio, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
     let installed = pio.install(&program).unwrap();
-    let (int, frac) = (1, 1); // as slow as possible (0 is interpreted as 65536)
+    let (int, frac) = (1, 1); // 0 is interpreted as 65536
     let (sm, _, _) = rp2040_hal::pio::PIOBuilder::from_program(installed)
         .set_pins(led_pin_id, 1)
         .clock_divisor_fixed_point(int, frac)
@@ -81,7 +87,7 @@ fn main() -> ! {
     sm.start();
 
     loop {
-        // info!("on!");
+        info!("mainloop!");
         // led_pin.set_high().unwrap();
         // delay.delay_ms(500);
         // info!("off!");
